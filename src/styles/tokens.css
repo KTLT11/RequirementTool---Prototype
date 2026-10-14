@@ -1,0 +1,56 @@
+@import url("https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+@theme {
+  --color-primary: #c4622e;
+  --color-primary-hover: #a85128;
+  --color-page: #faf8f2;
+  --color-card: #ffffff;
+  --color-surface: #f4f0e6;
+  --color-ink: #1c1a17;
+  --color-muted: #6b6456;
+  --color-line: #e6e2da;
+  --color-sage: #4d8654;
+  --font-display: "Lora", Georgia, serif;
+  --font-ui: "Inter", Arial, sans-serif;
+  --radius-base: 10px;
+}
+:root {
+  font-family: var(--font-ui);
+  color: var(--color-ink);
+  background: var(--color-page);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --color-primary-soft: #f9eee6;
+  --color-sage-soft: #eef5ec;
+  --color-warning: #89652e;
+  --color-warning-soft: #fff7e6;
+  --color-error: #a33e36;
+  --shadow-card: 0 2px 6px rgb(44 32 17 / 3%), 0 8px 24px rgb(44 32 17 / 2%);
+  --shadow-overlay: 0 20px 80px rgb(44 32 17 / 18%);
+  --sidebar-width: 248px;
+  --text-page-title: 25px;
+  --text-large-section: 19px;
+  --text-workspace-heading: 18px;
+  --text-card-heading: 16px;
+  --text-body: 14px;
+  --text-form-label: 13px;
+  --text-control: 14px;
+  --text-button: 14px;
+  --text-table: 14px;
+  --text-navigation: 14px;
+  --text-helper: 13px;
+  --text-metadata: 12px;
+  --text-badge: 11px;
+  --weight-heading: 600;
+  --weight-body: 400;
+  --weight-ui: 500;
+  --line-body: 1.55;
+  --line-heading: 1.35;
+  --page-padding: 24px;
+  --section-gap: 20px;
+  --card-padding: 18px;
+  --component-gap: 10px;
+  --field-gap: 14px;
+  --control-height: 40px;
+}

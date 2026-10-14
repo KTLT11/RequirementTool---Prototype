@@ -1,0 +1,170 @@
+{
+  "all": [
+    {
+      "width": 1366,
+      "screen": "overview",
+      "font": "14px",
+      "height": 1066,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "sources",
+      "font": "14px",
+      "height": 1075,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "context",
+      "font": "14px",
+      "height": 1359,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "discovery",
+      "font": "14px",
+      "height": 1158,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "evidence",
+      "font": "14px",
+      "height": 1317,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "requirements",
+      "font": "14px",
+      "height": 1358,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "quality",
+      "font": "14px",
+      "height": 1588,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "customer",
+      "font": "14px",
+      "height": 870,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "handoff",
+      "font": "14px",
+      "height": 990,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "history",
+      "font": "14px",
+      "height": 1130,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "overview",
+      "font": "14px",
+      "height": 1048,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "sources",
+      "font": "14px",
+      "height": 1075,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "context",
+      "font": "14px",
+      "height": 1291,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "discovery",
+      "font": "14px",
+      "height": 1137,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "evidence",
+      "font": "14px",
+      "height": 1317,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "requirements",
+      "font": "14px",
+      "height": 1310,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "quality",
+      "font": "14px",
+      "height": 1588,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "customer",
+      "font": "14px",
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "handoff",
+      "font": "14px",
+      "height": 990,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "history",
+      "font": "14px",
+      "height": 1130,
+      "overflow": false
+    }
+  ],
+  "final": [
+    {
+      "width": 1366,
+      "screen": "requirements",
+      "height": 1367,
+      "overflow": false
+    },
+    {
+      "width": 1366,
+      "screen": "quality",
+      "height": 1084,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "requirements",
+      "height": 1319,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "screen": "quality",
+      "height": 1084,
+      "overflow": false
+    }
+  ]
+}

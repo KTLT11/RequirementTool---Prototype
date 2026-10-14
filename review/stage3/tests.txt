@@ -1,0 +1,59 @@
+
+> requirement-tool-prototype@0.2.0 test
+> node --import tsx --test src/services/stage2.test.ts src/services/stage3.test.ts
+
+✔ Creation validates input and creates independent Case (2.18ms)
+✔ Initial scenario has Pending Review, Reviewed/Unconfirmed, conflict and missing inputs (0.3266ms)
+✔ Reviewed does not imply Confirmed; clarification text alone cannot resolve (1.0793ms)
+✔ Wrong authority cannot confirm; correct conflict decision keeps both sources (1.9173ms)
+✔ Source response change supersedes evidence, reopens gap and invalidates downstream (1.5267ms)
+✔ Dependency reset from incoming preserves all upstream segments (2.7326ms)
+✔ Dependency reset from context preserves all upstream segments (2.0641ms)
+✔ Dependency reset from discovery preserves all upstream segments (1.7833ms)
+✔ Dependency reset from formation preserves all upstream segments (1.8641ms)
+✔ Dependency reset from customer preserves all upstream segments (2.9303ms)
+✔ Dependency reset from readiness preserves all upstream segments (1.8264ms)
+✔ Dependency reset from handoff preserves all upstream segments (1.3134ms)
+✔ Entire Demo reset restores conflict, missing responses and stable IDs (1.405ms)
+✔ Reset repeats deterministically for business data and is scoped to demo (1.5063ms)
+✔ Reset after response edit and conflict resolution preserves context from Layer 1 (1.3124ms)
+✔ Serialized reset survives refresh round-trip with matching versions and gaps (1.9488ms)
+✔ Mandatory gates cannot be bypassed by advancing or viewing previews (0.503ms)
+✔ Unverified important context assumption blocks Information Complete even after question gaps close (0.1254ms)
+✔ Layer 1 reset retains stakeholders referenced by preserved context (1.4717ms)
+✔ Conflict text follows changed source values rather than retaining original 14/30 wording (1.412ms)
+✔ Late simulated suggestion is rejected after reset and viewing preview does not change source version (1.4587ms)
+✔ Preview uses current unresolved rule source (1.241ms)
+✔ UX V2 drafts survive saving another question and serialization (0.9864ms)
+✔ UX V2 accepting interpretation cannot confirm; link preserves opposite source (0.6094ms)
+✔ UX V2 document metadata import does not invent extraction (0.1843ms)
+✔ Stage 4 preview stays separate from real Layer 2 and cannot run retired correction (4.1822ms)
+✔ UX V2 Discovery reset preserves source review but clears downstream evidence links/drafts (0.5896ms)
+✔ Guided Demo resumes at the scene owned by selected reset stage (0.5465ms)
+✔ Decomposition preserves AC allocation/source links, archives parent and blocks loss (3.2441ms)
+✔ Applicability N/A requires BA basis and cannot hide known critical scenarios (2.8628ms)
+✔ CRUD, source formation, AC edits, archive and serialization preserve identity/history (2.151ms)
+✔ Requirement drafts do not mutate canonical validation input; block validation until save (0.9013ms)
+✔ Missing structured AC coverage generates rule finding; text keyword cannot resolve it (7.5886ms)
+✔ Business judgment cannot override missing AC, missing fields, unconfirmed sources or conflict (3.027ms)
+✔ Module applicability exposes Pass Fail Unknown N/A and deterministic results (0.6998ms)
+✔ Unconfirmed and assumption evidence are never considered confirmed (0.5875ms)
+✔ Evidence and Discovery changes stale only dependent checks and requirements; immutable runs remain (4.6286ms)
+✔ AC edit stales quality coverage, not independent source checks; mapping and reviews re-evaluate (2.0995ms)
+✔ Superseded extraction-linked evidence and changed related requirement invalidate scope (5.5912ms)
+✔ Confirmed structured scope plus BA reviews can be Quality Ready beside unresolved requirements (4.3802ms)
+✔ Layer 2 reset from incoming preserves ownership and is repeatable after validation/change (3.4499ms)
+✔ Layer 2 reset from context preserves ownership and is repeatable after validation/change (3.9459ms)
+✔ Layer 2 reset from discovery preserves ownership and is repeatable after validation/change (4.8557ms)
+✔ Layer 2 reset from formation preserves ownership and is repeatable after validation/change (4.8047ms)
+✔ Layer 2 reset from customer preserves ownership and is repeatable after validation/change (5.648ms)
+✔ Layer 2 reset from readiness preserves ownership and is repeatable after validation/change (3.3721ms)
+✔ Layer 2 reset from handoff preserves ownership and is repeatable after validation/change (3.3606ms)
+ℹ tests 47
+ℹ suites 0
+ℹ pass 47
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 304.4388
