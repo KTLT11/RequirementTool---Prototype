@@ -100,7 +100,7 @@ export function ResetDialog({
               update(workCase.id, { type: "reset", stage });
               toast(`Đã reset từ ${stageLabels[stage]}.`);
               onClose();
-              navigate(casePath(workCase.id));
+              navigate(casePath(workCase.id, "continue"));
             }}
           >
             Confirm Reset

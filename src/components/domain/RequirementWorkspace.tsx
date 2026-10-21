@@ -38,14 +38,18 @@ import {
 import { Modal } from "../ui/Overlay";
 import { TraceabilityPanel, entityPath } from "./TraceabilityPanel";
 import { casePath } from "../../app/navigation";
+import { AssistedTextarea, ReviewableTextarea } from "../ui/ContentAssist";
+import { proposeRequirement, proposeAc, inspectRequirementComponents } from "../../services/demoAssistService";
 
 export function FormationDialog({
   workCase: c,
   questionId,
+  returnTo,
   onClose,
 }: {
   workCase: WorkCase;
   questionId?: string;
+  returnTo?: string;
   onClose: () => void;
 }) {
   const { update } = useApp(),
@@ -82,7 +86,9 @@ export function FormationDialog({
                   },
                 });
                 onClose();
-                nav(`${casePath(c.id, "requirements")}?latest=1`);
+                nav(
+                  `${casePath(c.id, "requirements")}?latest=1${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}`,
+                );
               } catch (e) {
                 setError((e as Error).message);
               }
@@ -157,6 +163,10 @@ export function RequirementWorkspace({ workCase: c }: { workCase: WorkCase }) {
   const { update } = useApp();
   const [params, setParams] = useSearchParams();
   const l = layer2(c);
+  const [componentReview, setComponentReview] = useState<{
+    input: string;
+    errors: ReturnType<typeof inspectRequirementComponents>;
+  } | null>(null);
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("All"),
     [status, setStatus] = useState("Active"),
@@ -172,6 +182,8 @@ export function RequirementWorkspace({ workCase: c }: { workCase: WorkCase }) {
     l.requirements.find((r) => r.status !== "Archived");
   const draft = req ? (l.drafts[req.id] ?? req) : undefined,
     tab = params.get("tab") || "content";
+  const componentInput = draft ? JSON.stringify([draft.id, draft.module, draft.fields]) : '';
+  const currentComponentReview = componentReview?.input === componentInput ? componentReview : null;
   const list = l.requirements.filter(
     (r) =>
       (status === "All" || r.status !== "Archived") &&
@@ -323,13 +335,13 @@ export function RequirementWorkspace({ workCase: c }: { workCase: WorkCase }) {
                         <option key={m}>{m}</option>
                       ))}
                     </Select>
-                    <Textarea
+                    <AssistedTextarea
+                      key={`${req.id}:statement`}
                       label="Requirement statement"
                       rows={3}
                       value={draft.statement}
-                      onChange={(e) =>
-                        edit({ ...draft, statement: e.target.value })
-                      }
+                      onChange={(value) => edit({ ...draft, statement: value })}
+                      propose={() => proposeRequirement(draft)}
                     />
                     <div className="l2-fields">
                       {moduleFields[draft.module].map((k) => (
@@ -338,6 +350,7 @@ export function RequirementWorkspace({ workCase: c }: { workCase: WorkCase }) {
                           label={fieldLabels[k]}
                           rows={2}
                           value={draft.fields[k]}
+                          error={currentComponentReview?.errors[k]}
                           onChange={(e) =>
                             edit({
                               ...draft,
@@ -347,6 +360,14 @@ export function RequirementWorkspace({ workCase: c }: { workCase: WorkCase }) {
                         />
                       ))}
                     </div>
+                    <Button variant="secondary" size="small" onClick={() => setComponentReview({
+                      input: componentInput,
+                      errors: inspectRequirementComponents(draft, moduleFields[draft.module]),
+                    })}>Kiểm tra các thành phần · demo</Button>
+                    {componentReview && <p className={`assist-review ${currentComponentReview && !Object.keys(currentComponentReview.errors).length ? 'review-pass' : ''}`} role="status">
+                      {!currentComponentReview ? 'Thành phần đã thay đổi. Bấm kiểm tra lại.' :
+                        Object.keys(currentComponentReview.errors).length ? 'Cần sửa các trường được đánh dấu ở trên.' : '✓ Các thành phần đạt kiểm tra nội dung demo.'}
+                    </p>}
                     <p className="small muted">
                       Review judgment được ghi theo từng criterion ở Quality
                       Review. Lưu text không tự Reviewed hoặc Confirmed.
@@ -767,41 +788,35 @@ function ACEditor({
         <option>Condition/Outcome</option>
         <option>Given/When/Then</option>
       </Select>
-      <Textarea
+      <AssistedTextarea
         label={
           a.format === "Given/When/Then"
             ? "Given / When — Điều kiện"
             : "Điều kiện áp dụng"
         }
         value={a.condition}
-        onChange={(e) =>
-          onChange({ ...a, condition: e.target.value, status: "Draft" })
-        }
+        onChange={(value) => onChange({ ...a, condition: value, status: "Draft" })}
+        propose={() => proposeAc(a, r, 'condition')}
       />
-      <Textarea
+      <ReviewableTextarea
         label="Input / Context"
         value={a.input}
-        onChange={(e) =>
-          onChange({ ...a, input: e.target.value, status: "Draft" })
-        }
+        onChange={(value) => onChange({ ...a, input: value, status: "Draft" })}
       />
-      <Textarea
+      <AssistedTextarea
         label={
           a.format === "Given/When/Then"
             ? "Then — Kết quả mong đợi"
             : "Kết quả mong đợi"
         }
         value={a.outcome}
-        onChange={(e) =>
-          onChange({ ...a, outcome: e.target.value, status: "Draft" })
-        }
+        onChange={(value) => onChange({ ...a, outcome: value, status: "Draft" })}
+        propose={() => proposeAc(a, r, 'outcome')}
       />
-      <Textarea
+      <ReviewableTextarea
         label="Cách kiểm chứng kết quả"
         value={a.verification}
-        onChange={(e) =>
-          onChange({ ...a, verification: e.target.value, status: "Draft" })
-        }
+        onChange={(value) => onChange({ ...a, verification: value, status: "Draft" })}
       />
       <h3>Scenario coverage</h3>
       {r.scenarios.map((s) => (

@@ -82,6 +82,7 @@ export const workspaceSections = [
     phase: 2,
   },
 ] as const;
-export type SectionSlug = (typeof workspaceSections)[number]["slug"];
-export const casePath = (id: string, section: SectionSlug = "overview") =>
+export type SectionSlug =
+  (typeof workspaceSections)[number]["slug"] | "continue" | "explore" | "data";
+export const casePath = (id: string, section: SectionSlug = "continue") =>
   `/cases/${encodeURIComponent(id)}/${section}`;

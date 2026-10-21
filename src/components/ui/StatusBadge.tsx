@@ -44,6 +44,15 @@ const CATEGORY_MAP = {
       "Not Ready": "error",
     },
   },
+  confirmation: {
+    label: "Customer Confirmation",
+    tones: {
+      Pending: "neutral",
+      Confirmed: "sage",
+      "Partially Confirmed": "sage",
+      "Changes Requested": "warning",
+    },
+  },
 } as const;
 
 export type StatusCategory = keyof typeof CATEGORY_MAP;

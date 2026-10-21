@@ -6,8 +6,6 @@ import {
   requirementQuality,
 } from "../../services/requirementService";
 import {
-  buildCrdSections,
-  buildDrdSections,
   devReadiness,
   defaultDocumentScope,
 } from "../../services/documentService";
@@ -24,7 +22,6 @@ import type {
   WorkCase,
   Stage,
   Evidence,
-  ConfirmationOutcome,
   DevReviewOutcome,
 } from "../../types/case";
 import type { SourceDocument } from "../../types/ux";
@@ -36,11 +33,14 @@ import {
   Select,
   Textarea,
   TextInput,
-  Checkbox,
 } from "../ui/primitives";
 import { Drawer, Modal } from "../ui/Overlay";
+import { CustomerReviewWorkspace } from "./CustomerConfirmationWorkspace";
+import { DocumentExperience } from "./DocumentExperience";
 import { SectionSwitcher } from "../ui/SectionSwitcher";
 import { StatusBadge, StatusColumn } from "../ui/StatusBadge";
+import { DiscoveryQuestionAssist } from './DemoAssistance';
+import { ReviewableTextarea } from '../ui/ContentAssist';
 import { ux } from "../../services/uxService";
 import {
   authorized,
@@ -392,7 +392,9 @@ export function RequestSources({
                       role="menuitem"
                       className="dropdown-item danger"
                       onClick={(e) => {
-                        e.currentTarget.closest("details")?.removeAttribute("open");
+                        e.currentTarget
+                          .closest("details")
+                          ?.removeAttribute("open");
                         setDeleteTarget(d.id);
                       }}
                     >
@@ -699,7 +701,11 @@ export function EvidenceReview({
         · {e.provenance}
       </p>
       <div className="badge-group">
-        <StatusBadge category="evidence-review" status={e.review} showCategory />
+        <StatusBadge
+          category="evidence-review"
+          status={e.review}
+          showCategory
+        />
         <StatusBadge
           category="evidence-confidence"
           status={e.status}
@@ -894,11 +900,13 @@ export function ConnectedDiscovery({ workCase: c }: { workCase: WorkCase }) {
               ? "Thông tin đã có Evidence xác minh."
               : `Cần bổ sung: ${!draft.text.trim() ? "response và nguồn" : !draft.source ? "nguồn thông tin" : "review / căn cứ xác minh Evidence"}${gap?.type === "Conflict" ? "; quyết định có authority cho mâu thuẫn" : ""}.`}
           </p>
-          <Textarea
+          <DiscoveryQuestionAssist key={selected.id} workCase={c} questionId={selected.id} />
+          <ReviewableTextarea
+            key={`${selected.id}:response`}
             label="Response đang làm việc"
             rows={4}
             value={draft.text}
-            onChange={(ev) => change(ev.target.value, draft.source)}
+            onChange={(value) => change(value, draft.source)}
           />
           <Select
             label="Nguồn cung cấp thông tin"
@@ -996,250 +1004,20 @@ export function ConnectedDiscovery({ workCase: c }: { workCase: WorkCase }) {
     </div>
   );
 }
-function DocumentPreview({
-  workCase: c,
-  defaultAudience = "CRD",
-  scopeReqIds,
-}: {
-  workCase: WorkCase;
-  defaultAudience?: "CRD" | "DRD";
-  scopeReqIds: string[];
-}) {
-  const { update } = useApp();
-  const [audience, setAudience] = useState<"CRD" | "DRD">(defaultAudience);
-  const liveSections =
-    audience === "CRD"
-      ? buildCrdSections(c, scopeReqIds)
-      : buildDrdSections(c, scopeReqIds);
-  const snapshots = c.snapshots.filter((s) => s.audience === audience);
-  const [snapshotId, setSnapshotId] = useState<string>("live");
-  const shown =
-    snapshotId === "live"
-      ? liveSections
-      : (snapshots.find((s) => s.id === snapshotId)?.sections ?? liveSections);
-  return (
-    <Card>
-      <div className="card-heading">
-        <div>
-          <h3>
-            {audience} ·{" "}
-            {snapshotId === "live" ? `Draft hiện tại (working v${c.version})` : "Snapshot (immutable)"}
-          </h3>
-          <p>
-            Scope: {scopeReqIds.join(", ") || "Chưa chọn Requirement."}
-          </p>
-        </div>
-        <Select
-          label="Loại tài liệu"
-          value={audience}
-          onChange={(e) => {
-            setAudience(e.target.value as "CRD" | "DRD");
-            setSnapshotId("live");
-          }}
-        >
-          <option>CRD</option>
-          <option>DRD</option>
-        </Select>
-      </div>
-      <div className="card-content">
-        <div className="field">
-          <label htmlFor="snapshot-select">Phiên bản</label>
-          <select
-            id="snapshot-select"
-            className="input"
-            value={snapshotId}
-            onChange={(e) => setSnapshotId(e.target.value)}
-          >
-            <option value="live">Draft hiện tại (live)</option>
-            {snapshots.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.id} · v{s.version} · {new Date(s.createdAt).toLocaleString()}
-              </option>
-            ))}
-          </select>
-        </div>
-        <Button
-          variant="secondary"
-          disabled={!scopeReqIds.length}
-          onClick={() =>
-            update(c.id, {
-              type: "snapshot",
-              audience,
-              scopeReqIds,
-            })
-          }
-        >
-          Tạo Snapshot {audience} từ scope hiện tại
-        </Button>
-      </div>
-      <div className="card-content document-preview">
-        {shown.map((s, i) =>
-          s.applies ? (
-            <details
-              className="disclosure"
-              key={audience + s.code}
-              open={i === 0 || i === shown.length - 1}
-            >
-              <summary>
-                {s.code} · {s.title}
-              </summary>
-              <p className="preserve-lines">{s.body}</p>
-            </details>
-          ) : (
-            <p className="applicability-row" key={s.code}>
-              {s.code} · {s.title}{" "}
-              <span>
-                Không áp dụng — section conditional không xuất thành chapter
-                rỗng.
-              </span>
-            </p>
-          ),
-        )}
-        <p className="small muted">
-          {audience === "CRD" ? "10 sections C01–C10" : "12 section slots D01–D12"}.
-          {snapshotId === "live"
-            ? " Draft phản ánh canonical state hiện tại; tạo Snapshot để cố định bản gửi review."
-            : " Snapshot immutable — nội dung giữ nguyên dù source thay đổi sau đó."}
-        </p>
-        <Link
-          className="text-link"
-          to={`${casePath(c.id, "requirements")}?tab=trace`}
-        >
-          Xem nguồn của requirement / rule trong tài liệu →
-        </Link>
-      </div>
-    </Card>
-  );
-}
-function CustomerConfirmationPanel({ workCase: c }: { workCase: WorkCase }) {
-  const { update } = useApp();
-  const active = layer2(c).requirements.filter((r) => r.status !== "Archived");
-  const [scope, setScope] = useState<string[]>(
-    c.confirmation.scopeReqIds.length
-      ? c.confirmation.scopeReqIds
-      : defaultDocumentScope(c),
-  );
-  const [outcome, setOutcome] = useState<ConfirmationOutcome>("Confirmed");
-  const [approverRole, setApproverRole] = useState(c.confirmation.approverRole);
-  const [approverIdentity, setApproverIdentity] = useState(
-    c.confirmation.approverIdentity,
-  );
-  const [basis, setBasis] = useState("");
-  const [comments, setComments] = useState("");
-  const [changeRequests, setChangeRequests] = useState("");
-  const [error, setError] = useState("");
-  const toggle = (id: string) =>
-    setScope((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  return (
-    <section>
-      <h3>Customer Confirmation</h3>
-      <p>
-        Hiện tại: <strong>{c.confirmation.outcome}</strong>
-        {c.confirmation.scopeReqIds.length
-          ? ` · scope ${c.confirmation.scopeReqIds.join(", ")}`
-          : ""}
-        {c.confirmation.date ? ` · ${new Date(c.confirmation.date).toLocaleString()}` : ""}
-      </p>
-      {c.previews.customer.status === "Stale" &&
-        c.confirmation.outcome !== "Pending" && (
-          <p className="field-error">
-            Input liên quan đã thay đổi sau lần xác nhận này; xác nhận cũ không
-            tự mất hiệu lực nhưng cần BA xem lại trước khi dùng cho Dev Review.
-          </p>
-        )}
-      <fieldset className="panel-stack">
-        <legend>Confirmation scope</legend>
-        {active.map((r) => (
-          <Checkbox
-            key={r.id}
-            label={`${r.id} — ${r.title} (${requirementQuality(c, r.id)})`}
-            checked={scope.includes(r.id)}
-            onChange={() => toggle(r.id)}
-          />
-        ))}
-      </fieldset>
-      <Select
-        label="Outcome"
-        value={outcome}
-        onChange={(e) => setOutcome(e.target.value as ConfirmationOutcome)}
-      >
-        <option>Confirmed</option>
-        <option>Partially Confirmed</option>
-        <option>Changes Requested</option>
-      </Select>
-      <TextInput
-        label="Approver role"
-        value={approverRole}
-        onChange={(e) => setApproverRole(e.target.value)}
-      />
-      <TextInput
-        label="Approver identity"
-        value={approverIdentity}
-        onChange={(e) => setApproverIdentity(e.target.value)}
-      />
-      <Textarea
-        label="Basis / evidence"
-        value={basis}
-        onChange={(e) => setBasis(e.target.value)}
-      />
-      <Textarea
-        label="Comments (tuỳ chọn)"
-        value={comments}
-        onChange={(e) => setComments(e.target.value)}
-      />
-      {outcome === "Changes Requested" && (
-        <Textarea
-          label="Change requests"
-          value={changeRequests}
-          onChange={(e) => setChangeRequests(e.target.value)}
-        />
-      )}
-      {error && (
-        <p role="alert" className="field-error">
-          {error}
-        </p>
-      )}
-      <Button
-        disabled={!scope.length}
-        onClick={() => {
-          try {
-            update(c.id, {
-              type: "confirmCustomer",
-              scopeReqIds: scope,
-              outcome,
-              approverRole,
-              approverIdentity,
-              basis,
-              comments,
-              changeRequests,
-            });
-            setError("");
-            setBasis("");
-          } catch (e) {
-            setError((e as Error).message);
-          }
-        }}
-      >
-        Ghi nhận Customer Confirmation
-      </Button>
-      {!active.length && (
-        <Link className="text-link" to={casePath(c.id, "requirements")}>
-          Chưa có Requirement active; tạo Requirement trước khi xác nhận →
-        </Link>
-      )}
-    </section>
-  );
-}
 function DevReadinessPanel({ workCase: c }: { workCase: WorkCase }) {
-  const scope = c.confirmation.scopeReqIds.length
-    ? c.confirmation.scopeReqIds
-    : defaultDocumentScope(c);
+  const [taskParams] = useSearchParams();
+  const scope = taskParams.get("scope")
+    ? defaultDocumentScope(c).filter((id) => id === taskParams.get("scope"))
+    : c.confirmation.scopeReqIds.length
+      ? c.confirmation.scopeReqIds
+      : defaultDocumentScope(c);
   const result = devReadiness(c, scope);
   return (
     <section>
       <h3>Dev Readiness</h3>
       <p>
-        Scope: {scope.join(", ") || "Chưa có Requirement."} · source v{c.version}
+        Scope: {scope.join(", ") || "Chưa có Requirement."} · source v
+        {c.version}
       </p>
       <StatusBadge category="dev-readiness" status={result.status} />
       {result.reasons.length > 0 && (
@@ -1277,7 +1055,9 @@ function DevReviewPanel({ workCase: c }: { workCase: WorkCase }) {
         {c.devReview.scopeReqIds.length
           ? ` · scope ${c.devReview.scopeReqIds.join(", ")}`
           : ""}
-        {c.devReview.date ? ` · ${new Date(c.devReview.date).toLocaleString()}` : ""}
+        {c.devReview.date
+          ? ` · ${new Date(c.devReview.date).toLocaleString()}`
+          : ""}
       </p>
       {!canReview && (
         <p className="field-error">
@@ -1354,15 +1134,20 @@ export function ConfirmationHandoff({
   const [params, setParams] = useSearchParams();
   const view = params.get("stage") ?? (handoff ? "readiness" : "customer");
   const activeTotal = qualitySummary(c).total;
-  const scope = c.confirmation.scopeReqIds.length
-    ? c.confirmation.scopeReqIds
-    : defaultDocumentScope(c);
+  const scope = params.get("scope")
+    ? defaultDocumentScope(c).filter((id) => id === params.get("scope"))
+    : c.confirmation.scopeReqIds.length
+      ? c.confirmation.scopeReqIds
+      : defaultDocumentScope(c);
   if (!activeTotal)
     return (
       <Card>
         <div className="card-content">
           <h3>Chưa có Requirement nào để xác nhận/bàn giao</h3>
-          <p>Tạo và validate Requirement ở Layer 2 trước khi dùng Customer Confirmation/Dev Readiness.</p>
+          <p>
+            Tạo và validate Requirement ở Layer 2 trước khi dùng Customer
+            Confirmation/Dev Readiness.
+          </p>
           <Link className="text-link" to={casePath(c.id, "requirements")}>
             Mở Requirements
           </Link>
@@ -1375,421 +1160,59 @@ export function ConfirmationHandoff({
         <SectionSwitcher
           label="Readiness & Handoff"
           value={view}
-          onChange={(v) => setParams({ stage: v })}
+          onChange={(v) => {
+            const next = new URLSearchParams(params);
+            next.set("stage", v);
+            setParams(next);
+          }}
           items={[
             { value: "readiness", label: "Dev Readiness" },
             { value: "handoff", label: "CRD/DRD & Dev Handoff" },
           ]}
         />
       )}
-      <div className="review-grid">
-        {handoff ? (
-          view === "readiness" ? (
+      {handoff ? (
+        <div className="confirmation-workspace">
+          <details className="disclosure confirmation-helper">
+            <summary>Phân biệt các lớp review</summary>
+            <ul>
+              <li>Evidence: xác minh nguồn và căn cứ.</li>
+              <li>Requirement: review nội dung và AC (BA Review).</li>
+              <li>
+                Customer: xác nhận scope/baseline đã gửi (Customer
+                Confirmation).
+              </li>
+              <li>
+                Dev: tiếp nhận package cùng scope/baseline (Dev
+                Review/Acceptance).
+              </li>
+            </ul>
+            <p className="small muted">
+              BA Review ≠ Customer Confirmation ≠ Quality Ready ≠ Dev
+              Acceptance.
+            </p>
+          </details>
+          {view === "readiness" ? (
             <DevReadinessPanel workCase={c} />
           ) : (
             <DevReviewPanel workCase={c} />
-          )
-        ) : (
-          <CustomerConfirmationPanel workCase={c} />
-        )}
-        <section>
-          <h3>Phân biệt các lớp review</h3>
-          <ul>
-            <li>Evidence: xác minh nguồn và căn cứ.</li>
-            <li>Requirement: review nội dung và AC (BA Review).</li>
-            <li>Customer: xác nhận scope/baseline đã gửi (Customer Confirmation).</li>
-            <li>Dev: tiếp nhận package cùng scope/baseline (Dev Review/Acceptance).</li>
-          </ul>
-          <p className="small muted">
-            BA Review ≠ Customer Confirmation ≠ Quality Ready ≠ Dev Acceptance.
-          </p>
-        </section>
-      </div>
+          )}
+        </div>
+      ) : (
+        <CustomerReviewWorkspace workCase={c} />
+      )}
       <details
         className="document-workspace"
         key={view}
         open={handoff && view === "handoff"}
       >
         <summary>Đọc CRD / DRD · working v{c.version}</summary>
-        <DocumentPreview
+        <DocumentExperience
           workCase={c}
           defaultAudience={handoff ? "DRD" : "CRD"}
           scopeReqIds={scope}
         />
       </details>
     </div>
-  );
-}
-const scenes = [
-  [
-    "Receive Incoming Request",
-    "sources",
-    "Request khách hàng chưa có cấu trúc",
-    "Lưu yêu cầu gốc trong một Case",
-    "BA kiểm tra nội dung và provenance",
-    "Case có ID và nguồn request",
-  ],
-  [
-    "Import / Review Customer Information",
-    "sources",
-    "Hai tài liệu mô tả 14 và 30 ngày",
-    "Hiển thị excerpt và extraction mẫu chờ review",
-    "BA review diễn giải, liên kết đúng câu hỏi",
-    "Thông tin có document/reference; Evidence vẫn chưa Confirmed",
-  ],
-  [
-    "Context Analysis",
-    "context",
-    "Known / Unknown / Assumption chưa được kiểm tra",
-    "Đề xuất hướng Discovery mô phỏng và complexity",
-    "BA điều chỉnh, chấp nhận hướng và review bối cảnh",
-    "Nhìn rõ điều kiện còn thiếu trước Discovery",
-  ],
-  [
-    "Discovery Question",
-    "discovery",
-    "Required Information chưa đủ",
-    "Giữ draft và liên kết response với nguồn",
-    "BA nhập / lưu response của câu hỏi",
-    "Evidence mới Pending Review / Unconfirmed",
-  ],
-  [
-    "Evidence Conflict",
-    "evidence",
-    "Hai nguồn 14/30 chưa thống nhất",
-    "Đối chiếu các nguồn và Gap liên quan",
-    "BA xem source và authority của từng nguồn",
-    "Không tự chọn policy đúng",
-  ],
-  [
-    "Clarification / Gap Resolution",
-    "evidence",
-    "Conflict còn mở",
-    "Giữ nguồn, clarification và decision record",
-    "BA review nguồn, xác minh Evidence và ghi resolution có căn cứ",
-    "Gap có thể Resolved; downstream cần review lại",
-  ],
-  [
-    "Requirement Formation",
-    "requirements",
-    "Thông tin đã có căn cứ trong nhánh mẫu",
-    "Chiếu nguồn vào proposed behavior, rule và AC",
-    "BA đọc nội dung và mở Traceability",
-    "REQ-REF-001/002/003 và nguồn có thể truy ngược",
-  ],
-  [
-    "Quality Finding",
-    "quality",
-    "AC-REF-002 chỉ bao phủ payment success",
-    "Hiển thị finding mẫu cho unknown outcome/duplicate",
-    "BA mở đúng AC và thông tin liên quan",
-    "Biết cần bổ sung AC nào",
-  ],
-  [
-    "BA Correction / Re-validation",
-    "quality",
-    "AC thiếu alternative/exception coverage",
-    "Hiển thị AC bổ sung và expected After — mô phỏng",
-    "BA xem thay đổi mẫu; vẫn cần xác minh nguồn thật",
-    "Finding dự kiến xử lý sau recheck; không giả Quality Ready",
-  ],
-  [
-    "Customer Confirmation",
-    "customer",
-    "CRD draft chưa được Customer review",
-    "Minh họa review record theo scope/version",
-    "BA xem authority, phạm vi và phần unresolved",
-    "Customer scope confirmed chỉ trong scripted scene",
-  ],
-  [
-    "Dev Readiness",
-    "handoff",
-    "Quality và confirmation của nhánh mẫu đã có",
-    "Phân biệt Ready / Ready but Blocked / Not Ready",
-    "BA kiểm tra external contract và impacted REQ",
-    "Payment contract block không bị coi là đã giải quyết",
-  ],
-  [
-    "CRD/DRD & Handoff",
-    "handoff",
-    "Có scope, nguồn, reference và blocker",
-    "Chiếu canonical sample vào document/package",
-    "BA review Draft và Dev Acceptance scene riêng",
-    "Package preview; actual Case không được tự Completed",
-  ],
-];
-export function GuidedDemo({
-  workCase: c,
-  open,
-  onClose,
-}: {
-  workCase: WorkCase;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [scene, setScene] = useState(() => sceneForStage(ux(c).replayFrom)),
-    [after, setAfter] = useState(false);
-  const nav = useNavigate();
-  const { update } = useApp();
-  const [demoError, setDemoError] = useState("");
-  const [demoBefore, setDemoBefore] = useState("");
-  const l2 = layer2(c);
-  useEffect(() => {
-    setScene(sceneForStage(ux(c).replayFrom));
-    setAfter(false);
-  }, [c.id, ux(c).replayFrom]);
-  const s = scenes[scene];
-  return (
-    <Modal
-      open={open}
-      title="Guided Demo — Refund Request"
-      description="Layer 2 dùng state và validation thật; Customer/Dev ở Stage 4 vẫn là preview. Navigation không tự đổi business stage."
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Thoát về Workspace Mode
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={scene === 0}
-            onClick={() => {
-              setScene((n) => n - 1);
-              setAfter(false);
-            }}
-          >
-            Cảnh trước
-          </Button>
-          <Button
-            disabled={scene === 11}
-            onClick={() => {
-              setScene((n) => n + 1);
-              setAfter(false);
-            }}
-          >
-            Cảnh tiếp theo
-          </Button>
-        </>
-      }
-    >
-      <div className="guided-layout">
-        <nav aria-label="Guided scenes">
-          {scenes.map((s, i) => (
-            <button
-              key={s[0]}
-              className={scene === i ? "selected" : ""}
-              onClick={() => {
-                setScene(i);
-                setDemoBefore("");
-                setAfter(false);
-              }}
-            >
-              {i + 1}. {s[0]}
-            </button>
-          ))}
-        </nav>
-        <section>
-          <Badge>
-            {scene === 11 ? "Document preview — chưa export" : "Implemented workspace"}
-          </Badge>
-          <h2>{s[0]}</h2>
-          {scene >= 9 && scene <= 10 ? (
-            <div className="panel-stack">
-              <h3>Before / trước thao tác</h3>
-              <p>
-                {demoBefore ||
-                  `Confirmation: ${c.confirmation.outcome} · Dev Review: ${c.devReview.outcome}.`}
-              </p>
-              <h3>System / BA Action</h3>
-              <p>
-                {scene === 9
-                  ? "Ghi nhận Customer Confirmation thật trên scope active; không tự Quality Ready."
-                  : "Đọc Dev Readiness thật (Quality + Confirmation + Gap); không tự Ready khi còn blocker."}
-              </p>
-              {scene === 9 && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    try {
-                      setDemoBefore(`Confirmation trước: ${c.confirmation.outcome}`);
-                      update(c.id, {
-                        type: "confirmCustomer",
-                        scopeReqIds: l2.requirements
-                          .filter((r) => r.status !== "Archived")
-                          .map((r) => r.id),
-                        outcome: "Confirmed",
-                        approverRole: "Policy Owner",
-                        approverIdentity: "Policy Owner (kịch bản demo)",
-                        basis: "Guided Demo — xác nhận scope active theo kịch bản.",
-                      });
-                      setDemoError("");
-                    } catch (e) {
-                      setDemoError((e as Error).message);
-                    }
-                  }}
-                >
-                  Ghi nhận Customer Confirmation thật
-                </Button>
-              )}
-              {scene === 10 && (
-                <p>
-                  {devReadiness(
-                    c,
-                    c.confirmation.scopeReqIds.length
-                      ? c.confirmation.scopeReqIds
-                      : l2.requirements
-                          .filter((r) => r.status !== "Archived")
-                          .map((r) => r.id),
-                  ).status}
-                  {" · "}
-                  {devReadiness(
-                    c,
-                    c.confirmation.scopeReqIds.length
-                      ? c.confirmation.scopeReqIds
-                      : l2.requirements
-                          .filter((r) => r.status !== "Archived")
-                          .map((r) => r.id),
-                  ).reasons.join("; ") || "Không còn blocker trong scope."}
-                </p>
-              )}
-              <h3>After — shared state hiện tại</h3>
-              <p>
-                Confirmation: {c.confirmation.outcome} · Dev Review: {c.devReview.outcome}.
-              </p>
-              {demoError && (
-                <p role="alert" className="field-error">
-                  {demoError}
-                </p>
-              )}
-            </div>
-          ) : scene >= 6 && scene <= 8 ? (
-            <div className="panel-stack">
-              <h3>Before / trước thao tác</h3>
-              <p>
-                {demoBefore ||
-                  `${l2.requirements.filter((r) => r.status !== "Archived").length} Requirements · ${qualitySummary(c).open} Fail/Unknown · ${qualitySummary(c).stale} Stale.`}
-              </p>
-              <h3>System / BA Action</h3>
-              <p>
-                {scene === 6
-                  ? "Tạo Draft deterministic từ response và Evidence của Process; BA review/editor giữ nguồn chưa xác minh."
-                  : scene === 7
-                    ? "Chạy checklist trên structured state hiện tại; không có findings hardcoded."
-                    : "Mở REQ-REF-002 / AC, bổ sung coverage no-response, unknown outcome và duplicate; lưu rồi re-validate."}
-              </p>
-              {scene === 6 && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    try {
-                      setDemoBefore(
-                        `${qualitySummary(c).total} Requirements · ${qualitySummary(c).open} Fail/Unknown · ${qualitySummary(c).stale} Stale · run ${l2.runs.at(-1)?.id || "chưa có"}`,
-                      );
-                      update(c.id, {
-                        type: "layer2",
-                        command: {
-                          op: "create",
-                          title: "Draft từ Discovery — Guided Demo",
-                          module: "Process",
-                          questionIds: ["PROC-Q-09"],
-                          evidenceIds: c.discovery.evidence
-                            .filter(
-                              (e) =>
-                                e.questionId === "PROC-Q-09" &&
-                                e.status !== "Superseded",
-                            )
-                            .map((e) => e.id),
-                        },
-                      });
-                      setDemoError("");
-                    } catch (e) {
-                      setDemoError((e as Error).message);
-                    }
-                  }}
-                >
-                  Tạo Draft thật từ Discovery
-                </Button>
-              )}
-              {scene >= 7 && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    try {
-                      setDemoBefore(
-                        `${qualitySummary(c).total} Requirements · ${qualitySummary(c).open} Fail/Unknown · ${qualitySummary(c).stale} Stale · run ${l2.runs.at(-1)?.id || "chưa có"}`,
-                      );
-                      update(c.id, {
-                        type: "layer2",
-                        command: {
-                          op: "validate",
-                          ids: l2.requirements
-                            .filter((r) => r.status !== "Archived")
-                            .map((r) => r.id),
-                        },
-                      });
-                      setDemoError("");
-                    } catch (e) {
-                      setDemoError((e as Error).message);
-                    }
-                  }}
-                >
-                  Chạy validation thật trên scope active
-                </Button>
-              )}
-              <h3>After — shared state hiện tại</h3>
-              <p>
-                {qualitySummary(c).ready}/{qualitySummary(c).total} Quality
-                Ready · {qualitySummary(c).open} findings · lần chạy{" "}
-                {l2.runs.at(-1)?.id || "chưa có"}.
-              </p>
-              {demoError && (
-                <p role="alert" className="field-error">
-                  {demoError}
-                </p>
-              )}
-            </div>
-          ) : (
-            <>
-              <h3>Before</h3>
-              <p>{s[2]}</p>
-              <h3>What System Does</h3>
-              <p>{s[3]}</p>
-              <h3>What BA Does</h3>
-              <p>{s[4]}</p>
-              <Button variant="secondary" onClick={() => setAfter(!after)}>
-                {after ? "Thu gọn kết quả cảnh" : "Xem After minh họa"}
-              </Button>
-              {after && (
-                <div className="inline-feedback">
-                  <h3>After — walkthrough illustration</h3>
-                  <p>{s[5]}</p>
-                  <p>
-                    Trạng thái nghiệp vụ hiện tại: {stageLabels[c.currentStage]}
-                    ; minh họa không tự thực hiện approval.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-          <h3>Next Step</h3>
-          <p>
-            {scene < 11
-              ? scenes[scene + 1][0]
-              : "Review package và các blocker trong Workspace."}
-          </p>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              nav(
-                `${casePath(c.id, s[1] as import("../../app/navigation").SectionSlug)}${scene === 4 || scene === 5 ? "?view=conflicts&gap=GAP-RULE-Q-06" : scene === 8 ? "?requirement=REQ-REF-002&tab=ac" : scene === 11 ? "?stage=handoff" : ""}`,
-              );
-              onClose();
-            }}
-          >
-            Mở workspace của cảnh để thao tác
-          </Button>
-        </section>
-      </div>
-    </Modal>
   );
 }

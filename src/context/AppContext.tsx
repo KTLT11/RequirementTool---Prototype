@@ -47,6 +47,7 @@ type AppApi = State & {
   update: (id: string, command: CaseCommand) => void;
   create: (name: string, request: string) => string;
   persistenceError: string | null;
+  lastChange: { before: WorkCase; after: WorkCase } | null;
 };
 const AppContext: Context<AppApi | null> =
   import.meta.hot?.data.appContext ?? createContext<AppApi | null>(null);
@@ -59,6 +60,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
   const [revision, setRevision] = useState(0);
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const [lastChange, setLastChange] = useState<{
+    before: WorkCase;
+    after: WorkCase;
+  } | null>(null);
   const latestState = useRef(state);
   latestState.current = state;
   useEffect(() => {
@@ -127,6 +132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const c = latestState.current.cases.find((c) => c.id === id);
     if (!c) throw new Error("Không tìm thấy Case.");
     const next = transition(c, command);
+    if (next.version !== c.version) setLastChange({ before: c, after: next });
     latestState.current = {
       ...latestState.current,
       cases: latestState.current.cases.map((x) => (x.id === id ? next : x)),
@@ -146,6 +152,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         update,
         create,
         persistenceError,
+        lastChange,
       }}
     >
       {children}

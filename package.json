@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
-    "test": "node --import tsx --test src/services/stage2.test.ts src/services/stage3.test.ts src/services/stage4.test.ts",
+    "test": "node --import tsx --test src/services/stage2.test.ts src/services/stage3.test.ts src/services/stage4.test.ts src/services/taskService.test.ts src/services/taskNavigator.test.ts",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

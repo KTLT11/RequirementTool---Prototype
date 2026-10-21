@@ -29,9 +29,12 @@ export function AppShell() {
   const section = workspaceSections.find((item) =>
     location.pathname.endsWith(`/${item.slug}`),
   );
-  const activeTitle = caseId
-    ? (section?.label ?? "Case Workspace")
-    : "Case List";
+  const mode = location.pathname.endsWith("/continue")
+    ? "Continue Case"
+    : location.pathname.endsWith("/explore")
+      ? "Explore Workflow"
+      : "Dữ liệu Case";
+  const activeTitle = caseId ? (section?.label ?? mode) : "Case List";
   useEffect(() => {
     document.title = `${activeTitle} · Requirement Tool`;
     setMobileOpen(false);
@@ -69,11 +72,18 @@ export function AppShell() {
           </span>
         </Link>
         <nav aria-label="Case Workspace">
-          {workspaceSections.map((item) => (
+          {[
+            { slug: "continue", label: "Continue Case", icon: Layers3 },
+            { slug: "explore", label: "Explore Workflow", icon: FolderOpen },
+            { slug: "data", label: "Dữ liệu Case", icon: FolderOpen },
+          ].map((item) => (
             <NavLink
               key={item.slug}
-              className="side-link"
-              to={casePath(caseId ?? DEMO_CASE_ID, item.slug)}
+              className={`side-link ${item.slug === "data" && !!section ? "active" : ""}`}
+              to={casePath(
+                caseId ?? DEMO_CASE_ID,
+                item.slug as "continue" | "explore" | "data",
+              )}
             >
               <item.icon size={19} />
               <span>{item.label}</span>

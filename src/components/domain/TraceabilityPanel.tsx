@@ -5,7 +5,7 @@ import { layer2, requirementQuality } from "../../services/requirementService";
 import { questions } from "../../data/questions";
 import { casePath } from "../../app/navigation";
 export function entityPath(c: WorkCase, kind: string, id: string) {
-  const base = casePath(c.id).replace("/overview", "");
+  const base = casePath(c.id, "overview").replace("/overview", "");
   if (kind === "document" || kind === "extracted")
     return `${base}/sources?${kind}=${encodeURIComponent(id)}`;
   if (kind === "question")

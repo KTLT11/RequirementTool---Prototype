@@ -25,7 +25,6 @@ import {
   RequestSources,
   ConnectedDiscovery,
   ConfirmationHandoff,
-  GuidedDemo,
 } from "../components/domain/V2Workspace";
 import {
   RequirementWorkspace,
@@ -40,7 +39,6 @@ export function WorkspacePage({ section }: { section: SectionSlug }) {
   const { cases, status, error, reload, persistenceError } = useApp();
   const [editing, setEditing] = useState(false),
     [resetting, setResetting] = useState(false),
-    [guided, setGuided] = useState(false),
     [limit, setLimit] = useState(10);
   const c = cases.find((c) => c.id === caseId);
   const def = workspaceSections.find((s) => s.slug === section)!;
@@ -73,11 +71,9 @@ export function WorkspacePage({ section }: { section: SectionSlug }) {
           <h1>{c.name}</h1>
         </div>
         <div className="heading-actions">
-          {c.isDemo && (
-            <Button variant="secondary" onClick={() => setGuided(true)}>
-              Guided Demo
-            </Button>
-          )}
+          <Link className="btn btn-secondary" to={casePath(c.id, "continue")}>
+            Tiếp tục Case
+          </Link>
           <Button variant="ghost" onClick={() => setEditing(true)}>
             Chỉnh sửa Case
           </Button>
@@ -95,20 +91,6 @@ export function WorkspacePage({ section }: { section: SectionSlug }) {
             Vị trí replay sau reset · không phải approval
           </span>
         )}
-        <label className="workspace-picker">
-          Workspace
-          <select
-            aria-label="Chuyển workspace"
-            value={section}
-            onChange={(e) => nav(casePath(c.id, e.target.value as SectionSlug))}
-          >
-            {workspaceSections.map((s) => (
-              <option key={s.slug} value={s.slug}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       {persistenceError && (
         <p className="field-error" role="alert">
@@ -181,7 +163,6 @@ export function WorkspacePage({ section }: { section: SectionSlug }) {
       {resetting && (
         <ResetDialog workCase={c} onClose={() => setResetting(false)} />
       )}
-      <GuidedDemo workCase={c} open={guided} onClose={() => setGuided(false)} />
     </div>
   );
 }

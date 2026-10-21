@@ -164,6 +164,114 @@ test("CRD has 10 sections C01-C10 in order; DRD hides inapplicable sections", ()
   assert.equal(d07.applies, false, "no Permission requirement in demo scope");
 });
 
+test("QG-06 B3.1: Requirement with an open source Conflict is presented as conflicting, never Confirmed", () => {
+  const c = base();
+  const gap = c.discovery.gaps.find((g) => g.questionId === "RULE-Q-06")!;
+  assert.equal(gap.type, "Conflict", "demo 14/30 evidence must seed an open conflict");
+  const req = c.layer2!.requirements.find((r) => r.id === "REQ-REF-001")!;
+  assert.deepEqual(req.evidenceIds, ["EVI-14", "EVI-30"]);
+  const crd = buildCrdSections(c, ["REQ-REF-001"]);
+  const c07 = crd.find((s) => s.code === "C07")!;
+  assert.match(c07.body, /Source Confidence: Thông tin đang mâu thuẫn/);
+  assert.doesNotMatch(c07.body, /Source Confidence: Đã xác nhận/);
+});
+
+test("QG-06 B3.1: Requirement with no linked Evidence or Gap is presented as insufficient information", () => {
+  const c = base();
+  let r = structuredClone(c.layer2!.requirements.find((x) => x.id === "REQ-REF-002")!);
+  r.questionIds = [];
+  r.evidenceIds = [];
+  const c2 = act(c, { op: "save", requirement: r });
+  const crd = buildCrdSections(c2, ["REQ-REF-002"]);
+  const c07 = crd.find((s) => s.code === "C07")!;
+  assert.match(c07.body, /Source Confidence: Thiếu thông tin — chưa có nguồn xác nhận$/m);
+});
+
+test("QG-06 B3.1: Requirement backed only by a Confirmed, non-conflicting Evidence is presented as confirmed", () => {
+  let c = base();
+  c = makeQualityReady(c, "REQ-REF-001");
+  const req = c.layer2!.requirements.find((x) => x.id === "REQ-REF-001")!;
+  assert.equal(req.evidenceIds.length, 1, "makeQualityReady replaces conflicting evidence with one confirmed source");
+  const crd = buildCrdSections(c, ["REQ-REF-001"]);
+  const c07 = crd.find((s) => s.code === "C07")!;
+  assert.match(c07.body, /Source Confidence: Đã xác nhận theo nguồn có thẩm quyền/);
+});
+
+test("QG-06 B3.1: Requirement backed only by Superseded Evidence is never shown as a current fact", () => {
+  let c = base();
+  c = makeQualityReady(c, "REQ-REF-001");
+  const evId = c.layer2!.requirements.find((x) => x.id === "REQ-REF-001")!.evidenceIds[0];
+  const e = structuredClone(c.discovery.evidence.find((x) => x.id === evId)!);
+  e.status = "Superseded";
+  c = { ...c, discovery: { ...c.discovery, evidence: c.discovery.evidence.map((x) => (x.id === evId ? e : x)) } };
+  const crd = buildCrdSections(c, ["REQ-REF-001"]);
+  const c07 = crd.find((s) => s.code === "C07")!;
+  assert.match(c07.body, /Source Confidence: Đã thay thế — không dùng làm current fact/);
+});
+
+test("QG-06 B3.1: Evidence Reviewed but not yet Confirmed (no open conflict) is presented as BA-refined, not Confirmed", () => {
+  const c = base();
+  let r = structuredClone(c.layer2!.requirements.find((x) => x.id === "REQ-REF-002")!);
+  r.questionIds = ["CORE-Q-01"];
+  r.evidenceIds = ["EVI-01"];
+  const c2 = act(c, { op: "save", requirement: r });
+  const e = c2.discovery.evidence.find((x) => x.id === "EVI-01")!;
+  assert.equal(e.review, "Reviewed");
+  assert.equal(e.status, "Unconfirmed");
+  const crd = buildCrdSections(c2, ["REQ-REF-002"]);
+  const c07 = crd.find((s) => s.code === "C07")!;
+  assert.match(c07.body, /Source Confidence: Đã BA review — đang chờ xác nhận chính thức/);
+});
+
+test("QG-06 B3.1: Evidence neither Reviewed nor Confirmed (no open conflict) is presented as proposed, pending decision", () => {
+  const c = base();
+  let r = structuredClone(c.layer2!.requirements.find((x) => x.id === "REQ-REF-002")!);
+  r.questionIds = ["PROC-Q-09"];
+  r.evidenceIds = ["EVI-04"];
+  const c2 = act(c, { op: "save", requirement: r });
+  assert.equal(
+    c2.discovery.evidence.find((e) => e.id === "EVI-04")!.review,
+    "Pending Review",
+  );
+  const crd = buildCrdSections(c2, ["REQ-REF-002"]);
+  const c07 = crd.find((s) => s.code === "C07")!;
+  assert.match(c07.body, /Source Confidence: Phương án đề xuất — cần xác nhận/);
+});
+
+test("QG-06: creating a new CRD/DRD snapshot after resolving the source conflict reflects the updated confidence; the earlier snapshot stays untouched", () => {
+  let c = base();
+  c = transition(c, {
+    type: "snapshot",
+    audience: "CRD",
+    scopeReqIds: ["REQ-REF-001"],
+  });
+  const staleSnap = c.snapshots.find((s) => s.audience === "CRD")!;
+  const staleC07 = staleSnap.sections.find((s) => s.code === "C07")!;
+  assert.match(staleC07.body, /Source Confidence: Thông tin đang mâu thuẫn/);
+
+  c = makeQualityReady(c, "REQ-REF-001");
+  c = transition(c, {
+    type: "confirmCustomer",
+    scopeReqIds: ["REQ-REF-001"],
+    outcome: "Confirmed",
+    approverRole: "Policy Owner",
+    approverIdentity: "Policy Owner demo",
+    basis: "Conflict đã được giải quyết theo Evidence có thẩm quyền",
+  });
+  c = transition(c, {
+    type: "snapshot",
+    audience: "CRD",
+    scopeReqIds: ["REQ-REF-001"],
+  });
+  const newSnap = c.snapshots.filter((s) => s.audience === "CRD").at(-1)!;
+  const newC07 = newSnap.sections.find((s) => s.code === "C07")!;
+  assert.match(newC07.body, /Source Confidence: Đã xác nhận theo nguồn có thẩm quyền/);
+
+  // The first snapshot must remain exactly as it was taken.
+  const staleSnapAfter = c.snapshots.find((s) => s.id === staleSnap.id)!;
+  assert.deepEqual(staleSnapAfter.sections, staleSnap.sections);
+});
+
 test("Snapshot is immutable after later requirement edits", () => {
   let c = base();
   c = act(c, { op: "validate", ids: ["REQ-REF-001"] });

@@ -6,14 +6,13 @@ import { useToast } from "../ui/Toast";
 import {
   Button,
   Card,
-  Badge,
   Textarea,
   TextInput,
   Select,
 } from "../ui/primitives";
 import { Modal } from "../ui/Overlay";
 import { contextReady, mode } from "../../services/discoveryService";
-import { suggestHypothesis } from "../../services/suggestionService";
+import { ContextDirectionAssist } from './DemoAssistance';
 import type { WorkCase } from "../../types/case";
 export function ContextPanel({ workCase: c }: { workCase: WorkCase }) {
   const { update } = useApp();
@@ -21,7 +20,6 @@ export function ContextPanel({ workCase: c }: { workCase: WorkCase }) {
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(() => structuredClone(c.context));
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const run = (fn: () => void) => {
     try {
@@ -183,68 +181,8 @@ export function ContextPanel({ workCase: c }: { workCase: WorkCase }) {
           </section>
           <section className="assessment-pane">
             {" "}
-            <div
-              id="context-direction"
-              className="flex items-center gap-3 flex-wrap"
-            >
-              <h3>Discovery hypothesis</h3>
-              <Badge>{c.context.suggestionStatus}</Badge>
-              <span className="provenance">
-                {c.context.hypothesisProvenance}
-              </span>
-            </div>
-            <p className="mt-3">{c.context.hypothesis || "Chưa có đề xuất."}</p>
-            <div className="action-row">
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    const hypothesis = await suggestHypothesis(
-                      c.incomingRequest,
-                    );
-                    update(c.id, {
-                      type: "suggestion",
-                      outcome: "Suggested",
-                      hypothesis,
-                      inputVersion: c.version,
-                    });
-                    toast("Đề xuất chờ BA review.");
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                {busy ? "Đang phân tích…" : "Gợi ý hướng Discovery — mô phỏng"}
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={
-                  !c.context.hypothesis.trim() ||
-                  c.context.suggestionStatus === "Accepted"
-                }
-                onClick={() =>
-                  run(() =>
-                    update(c.id, { type: "suggestion", outcome: "Accepted" }),
-                  )
-                }
-              >
-                Chấp nhận hướng Discovery đề xuất
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() =>
-                  run(() =>
-                    update(c.id, { type: "suggestion", outcome: "Rejected" }),
-                  )
-                }
-              >
-                Không sử dụng đề xuất
-              </Button>
-            </div>
+            <h3 id="context-direction">Discovery hypothesis</h3>
+            <ContextDirectionAssist key={c.id} workCase={c} />
           </section>
         </div>
         <hr />

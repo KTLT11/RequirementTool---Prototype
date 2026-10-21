@@ -1,13 +1,37 @@
 import type { WorkCase, DocumentSection, Evidence } from "../types/case";
 import type { Requirement } from "../types/requirement";
 import { layer2, requirementQuality, qualitySummary } from "./requirementService";
-// QG-06 TCR-09: present source-confidence state in business language, never
-// internal status codes, and never equate it with document confirmation.
-function presentationLabel(e: Evidence | undefined): string {
-  if (!e) return "Thiếu thông tin — chưa có nguồn xác nhận";
-  if (e.status === "Superseded") return "Đã thay thế — không dùng làm current fact";
-  if (e.status === "Confirmed") return "Đã xác nhận theo nguồn có thẩm quyền";
-  if (e.review === "Reviewed") return "Đã BA review — đang chờ xác nhận chính thức";
+// QG-06 B3.1 (TCR-09): aggregate confidence across every Evidence linked to a
+// Requirement, plus any open Gap affecting it, into one of the six business-
+// language states. A single Confirmed Evidence never promotes the whole
+// Requirement to Confirmed when a Conflict is still open or other linked
+// Evidence disagrees — Conflicting/Insufficient takes precedence so BA and
+// Customer never see a false confirmation.
+function requirementConfidenceLabel(c: WorkCase, r: Requirement): string {
+  const evidence = r.evidenceIds
+    .map((id) => c.discovery.evidence.find((e) => e.id === id))
+    .filter((e): e is Evidence => !!e);
+  const relatedGaps = c.discovery.gaps.filter(
+    (g) => g.status !== "Resolved" && r.questionIds.includes(g.questionId),
+  );
+  const openConflict = relatedGaps.some((g) => g.type === "Conflict");
+  if (openConflict)
+    return "Thông tin đang mâu thuẫn giữa các nguồn — cần BA xử lý trước khi xem là current fact";
+  if (!evidence.length) {
+    const openMissing = relatedGaps.some(
+      (g) => g.type === "Missing" || g.type === "Unknown",
+    );
+    return openMissing
+      ? "Thiếu thông tin — chưa có nguồn xác nhận, đang chờ làm rõ"
+      : "Thiếu thông tin — chưa có nguồn xác nhận";
+  }
+  const current = evidence.filter((e) => e.status !== "Superseded");
+  if (!current.length)
+    return "Đã thay thế — không dùng làm current fact";
+  if (current.some((e) => e.status === "Confirmed"))
+    return "Đã xác nhận theo nguồn có thẩm quyền";
+  if (current.some((e) => e.review === "Reviewed"))
+    return "Đã BA review — đang chờ xác nhận chính thức";
   return "Phương án đề xuất — cần xác nhận";
 }
 function activeRequirements(c: WorkCase) {
@@ -49,6 +73,7 @@ function reqBlock(c: WorkCase, r: Requirement, scopeReqIds: string[]): string {
   const relatedOutOfScope = r.relatedIds.filter((id) => !scopeReqIds.includes(id));
   return [
     `${r.id} — ${r.title}`,
+    `Source Confidence: ${requirementConfidenceLabel(c, r)}`,
     `Business Purpose: ${r.fields.need || "Chưa làm rõ."}`,
     `Expected Behavior: ${r.statement || "Chưa xác định."}`,
     r.fields.actor?.trim() ? `Actor: ${r.fields.actor}` : "",
